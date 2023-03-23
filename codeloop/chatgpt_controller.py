@@ -21,6 +21,9 @@ DEBUG = True
 class CodeBlockError(Exception):
     pass
 
+default_json_output_instructions = """
+Return output as a JSON list inside a code block.
+"""
 
 class ChatGPTController:
     def __init__(self, package_name, requirements, relative_path):
@@ -77,21 +80,73 @@ class ChatGPTController:
 
             pdb.set_trace()
 
-    def get_methods_signatures(self):
-        # TODO
-        return []
+    def get_methods_signatures_for_commands(self, commands_list):
+        messages = [{"content": 
+     f"""
+     For these CLI commands, write all the method signatures that we would need to implement them:
+         {commands_list}
+
+     Think step by step first.
+    {default_json_output_instructions}
+     e.g. [{{"method_signature": "..."}}]
+
+    """, 
+    "role": "user"}]
+        methods_signatures_list = self._request_completion(self.system_messages + messages, extract_code_blocks=True, extract_jsons=True, include_lang=True, print_prompt=True)
+        return methods_signatures_list
 
     def write_method_body_implementation(self, method_signature_payload):
-        # TODO
-        return ""
+        # TODO: can maybe also add original program-level requirements too if helpful
+        messages = [
+                {"content": 
+                 f"""
+        For this method signature, write the body implementation:
+        {method_signature_payload["method_signature"]}
+
+        Return output inside a code block.
+    """, 
+                 "role": "user"}
+                ]
+
+        method_body = self._request_completion(self.system_messages + messages, extract_code_blocks=True, include_lang=True, print_prompt=True)
+        return method_body
 
     def write_method_test_signatures(self, method_implementation):
-        # TODO
-        return []
+        messages = [
+                {"content": 
+                 f"""
+            For this given method implementation, write only the signatures for possible tests:
+        {method_implementation}
 
-    def write_method_test_implementation(self, test_signature):
-        # TODO
-        return ""
+        {default_json_output_instructions}
+        e.g. [{{"test_signature": "...", "test_comment": "...}}] 
+
+    """, 
+                 "role": "user"}
+                ]
+
+        test_signatures_list = self._request_completion(self.system_messages + messages, extract_code_blocks=True, include_lang=True, print_prompt=True)
+        return test_signatures_list
+
+
+
+    def write_method_test_implementation(self, method_test_signature):
+        messages = [
+{"content": 
+        f"""
+        For this given test info, write only the test implementation:
+        - test name: {method_test_signature["test_name"]}
+        - test comment: {method_test_signature["test_comment"]}
+        
+        Return output inside a code block, with language specified.
+
+    """, 
+    "role": "user"}
+                ]
+
+        test_implementation_code = self._request_completion(self.system_messages + messages, extract_code_blocks=True, include_lang=True, print_prompt=True)
+
+        return test_implementation_code
 
     # Main code
     def run_codeloop(self):
@@ -99,15 +154,18 @@ class ChatGPTController:
         command_and_options_spec = self.get_commands_and_options_spec()
         self.write_commands_and_options_spec_prompt(command_and_options_spec)
 
-        methods_signatures_list = self.get_methods_signatures()
+        methods_signatures_list = self.get_methods_signatures_for_commands(commands_and_options_spec)
 
-        for method_signature_payload in methods_signatures_list:
+        print("Iterate through all methods")
+        for method_signature in methods_signatures_list:
+            print("method_signature: ", method_signature)
             method_implementation = self.write_method_body_implementation(
-                method_signature_payload
+                method_signature
             )
             test_signatures = self.write_method_test_signatures(method_implementation)
 
             all_method_tests = []
+            print("Iterate through all tests")
             for test_sig in test_signatures:
                 method_test_implementation = self.write_method_test_implementation(
                     test_sig
