@@ -31,9 +31,7 @@ setup(
         [console_scripts]
         codeloop=codeloop.cli:cli
     """,
-    install_requires=["click"],
-    extras_require={
-        "test": ["pytest"]
-    },
+    install_requires=["click", "rich", "openai"],
+    extras_require={"test": ["pytest"]},
     python_requires=">=3.7",
 )
