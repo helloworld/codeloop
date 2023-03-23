@@ -29,11 +29,10 @@ import click
     help="An example option",
 )
 def command_{command_and_options['command_name']}(example, option):
-    "Command description goes here"
-    click.echo("Here is some output")
+    <CODE HERE>
 ```
 
-Can you rewrite the file to implememt the commands and options? Return the output in a code block. Do not implement the command group.
+Return the output in a code block. All functions should be implemented. There should be no TODOs. 
 
 Make sure the method is named `command_{command_and_options['command_name']}` and that the command name is `{command_and_options['command_name']}`.
 

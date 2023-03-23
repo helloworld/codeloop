@@ -67,7 +67,7 @@ class ChatGPTController:
                     print_prompt=True,
                 )
             except CodeBlockError as e:
-                # retry 
+                # retry
                 print("Retrying ", i)
                 latest_error = e
                 continue
@@ -164,6 +164,7 @@ class ChatGPTController:
                         extract_code_blocks=True,
                         include_lang=True,
                         print_prompt=True,
+                        max_tokens=2000,
                     )
 
                     if contents:
@@ -196,6 +197,7 @@ class ChatGPTController:
         include_lang=False,
         model="gpt-3.5-turbo",
         print_prompt=False,
+        max_tokens=3500,
     ):
         if print_prompt:
             self._print_prompt(messages)
@@ -211,7 +213,7 @@ class ChatGPTController:
             completion = openai.ChatCompletion.create(
                 model=model,
                 messages=self.system_messages + messages,
-                max_tokens=3500,
+                max_tokens=max_tokens,
             )
 
             response_text = completion.choices[0].message.content
