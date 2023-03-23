@@ -40,48 +40,47 @@ class ChatGPTController:
             },
         ]
 
+    def _read_file_from_project(self, file_name):
+        with open(f"{self.relative_path}/{self.package_name}/{file_name}", "r") as f:
+            return f.read()
+
+    def _write_file_to_project(self, file_name, file_contents):
+        with open(f"{self.relative_path}/{self.package_name}/{file_name}", "w") as f:
+            f.write(file_contents)
+
     def get_commands_and_options_spec(self):
-        messages = self.system_messages + [
+        messages = [
             generate_commands_and_options_spec_prompt(self.requirements),
         ]
-        cli_spec_list = self._request_completion(
+        commands_and_options_spec = self._request_completion(
             messages,
             extract_code_blocks=True,
             extract_jsons=True,
             include_lang=True,
             print_prompt=True,
         )
-
-        print("CLI command spec: ", cli_spec_list)
-        return cli_spec_list
+        return commands_and_options_spec
 
     def write_commands_and_options_spec_prompt(
         self,
         commands_and_options: str,
     ):
-        # Get the contents of file to rewrite at the {relative_path}/{package_name}/cli.py
-
-        with open(
-            f"{self.relative_path}/{self.package_name}/cli.py", "r"
-        ) as file_to_rewrite:
-            file_to_rewrite_contents = file_to_rewrite.read()
-
-            messages = self.system_messages + [
-                write_commands_and_options_spec_prompt(
-                    self.requirements, commands_and_options, file_to_rewrite_contents
-                )
-            ]
-
-            rewrite = self._request_completion(
-                messages,
-                extract_code_blocks=True,
-                include_lang=True,
-                print_prompt=True,
+        cli_py_contents = self._read_file_from_project("cli.py")
+        messages = [
+            write_commands_and_options_spec_prompt(
+                self.requirements, commands_and_options, cli_py_contents
             )
+        ]
 
-            import pdb
+        rewritten_cli_py_contents = self._request_completion(
+            messages,
+            extract_code_blocks=True,
+            include_lang=True,
+            print_prompt=True,
+        )
 
-            pdb.set_trace()
+        if rewritten_cli_py_contents:
+            self._write_file_to_project("cli.py", rewritten_cli_py_contents)
 
     def get_methods_signatures_for_commands(self, commands_list):
         messages = get_methods_signatures_for_commands_prompt(commands_list)
@@ -107,7 +106,6 @@ class ChatGPTController:
 
     # Main code
     def run_codeloop(self):
-        print("starting codeloop")
         command_and_options_spec = self.get_commands_and_options_spec()
         self.write_commands_and_options_spec_prompt(command_and_options_spec)
 
@@ -168,7 +166,7 @@ class ChatGPTController:
         ):
             completion = openai.ChatCompletion.create(
                 model=model,
-                messages=messages,
+                messages=self.system_messages + messages,
                 max_tokens=3500,
             )
 

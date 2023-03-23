@@ -52,6 +52,9 @@ def generate(demo):
     console.print(panel)
 
     try:
+        console.print(
+            f"[bold][red]Existing directory found. Deleting directory {relative_path}...[/red][/bold]"
+        )
         subprocess.run(["rm", "-rf", relative_path], check=True)
     except subprocess.CalledProcessError as e:
         console.print(f"Error deleting directory: {e}", style="bold red")
@@ -71,9 +74,19 @@ def generate(demo):
     ]
 
     try:
+        console.print(
+            f"[bold][red]Generating package using cookiecutter...[/red][/bold]"
+        )
         subprocess.run(cookiecutter_cmd, check=True)
     except subprocess.CalledProcessError as e:
         console.print(f"Error executing cookiecutter: {e}", style="bold red")
+        return
+
+    try:
+        console.print(f"[bold][red]Installing package...[/red][/bold]")
+        subprocess.run(["pip", "install", "-e", "."], check=True, cwd=relative_path)
+    except subprocess.CalledProcessError as e:
+        console.print(f"Error installing package: {e}", style="bold red")
         return
 
     controller = ChatGPTController(package_name, requirements, relative_path)
