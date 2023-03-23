@@ -2,6 +2,8 @@ import click
 from rich.console import Console
 from rich.prompt import Prompt
 
+from codeloop.chatgpt_controller import ChatGPTController
+
 console = Console()
 
 
@@ -32,6 +34,8 @@ def generate():
     console.print(f"> {relative_path}")
 
     console.print("\nPackage generated successfully!", style="bold green")
+
+    controller = ChatGPTController(package_name, requirements, relative_path)
 
 
 if __name__ == "__main__":
