@@ -13,6 +13,12 @@ from codeloop.prompts.get_commands_and_options_spec import (
 from codeloop.prompts.write_commands_and_options import (
     write_commands_and_options_spec_prompt,
 )
+from codeloop.prompts.get_methods_signatures import (
+    get_methods_signatures_for_commands_prompt,
+)
+from codeloop.prompts.write_method_test_signatures import write_method_test_signatures_prompt
+from codeloop.prompts.write_method_body_implementation import write_method_body_implementation_prompt
+from codeloop.prompts.write_method_test_implementation import write_method_test_implementation_prompt
 
 
 DEBUG = True
@@ -21,9 +27,6 @@ DEBUG = True
 class CodeBlockError(Exception):
     pass
 
-default_json_output_instructions = """
-Return output as a JSON list inside a code block.
-"""
 
 class ChatGPTController:
     def __init__(self, package_name, requirements, relative_path):
@@ -81,70 +84,24 @@ class ChatGPTController:
             pdb.set_trace()
 
     def get_methods_signatures_for_commands(self, commands_list):
-        messages = [{"content": 
-     f"""
-     For these CLI commands, write all the method signatures that we would need to implement them:
-         {commands_list}
-
-     Think step by step first.
-    {default_json_output_instructions}
-     e.g. [{{"method_signature": "..."}}]
-
-    """, 
-    "role": "user"}]
+        messages = get_methods_signatures_for_commands_prompt(commands_list)
         methods_signatures_list = self._request_completion(self.system_messages + messages, extract_code_blocks=True, extract_jsons=True, include_lang=True, print_prompt=True)
         return methods_signatures_list
 
     def write_method_body_implementation(self, method_signature_payload):
-        # TODO: can maybe also add original program-level requirements too if helpful
-        messages = [
-                {"content": 
-                 f"""
-        For this method signature, write the body implementation:
-        {method_signature_payload["method_signature"]}
 
-        Return output inside a code block.
-    """, 
-                 "role": "user"}
-                ]
-
-        method_body = self._request_completion(self.system_messages + messages, extract_code_blocks=True, include_lang=True, print_prompt=True)
+        method_body = self._request_completion(self.system_messages + write_method_body_implementation_prompt(method_signature_payload), extract_code_blocks=True, include_lang=True, print_prompt=True)
         return method_body
 
     def write_method_test_signatures(self, method_implementation):
-        messages = [
-                {"content": 
-                 f"""
-            For this given method implementation, write only the signatures for possible tests:
-        {method_implementation}
-
-        {default_json_output_instructions}
-        e.g. [{{"test_signature": "...", "test_comment": "...}}] 
-
-    """, 
-                 "role": "user"}
-                ]
-
-        test_signatures_list = self._request_completion(self.system_messages + messages, extract_code_blocks=True, include_lang=True, print_prompt=True)
+        test_signatures_list = self._request_completion(self.system_messages + write_method_test_signatures_prompt(method_implementation), extract_code_blocks=True, include_lang=True, print_prompt=True)
         return test_signatures_list
 
 
 
     def write_method_test_implementation(self, method_test_signature):
-        messages = [
-{"content": 
-        f"""
-        For this given test info, write only the test implementation:
-        - test name: {method_test_signature["test_name"]}
-        - test comment: {method_test_signature["test_comment"]}
-        
-        Return output inside a code block, with language specified.
 
-    """, 
-    "role": "user"}
-                ]
-
-        test_implementation_code = self._request_completion(self.system_messages + messages, extract_code_blocks=True, include_lang=True, print_prompt=True)
+        test_implementation_code = self._request_completion(self.system_messages + write_method_test_implementation_prompt(method_test_signature), extract_code_blocks=True, include_lang=True, print_prompt=True)
 
         return test_implementation_code
 
