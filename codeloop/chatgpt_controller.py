@@ -106,8 +106,9 @@ class ChatGPTController:
 
     # Main code
     def run_codeloop(self):
-        command_and_options_spec = self.get_commands_and_options_spec()
-        self.write_commands_and_options_spec_prompt(command_and_options_spec)
+        print("starting codeloop")
+        commands_and_options_spec = self.get_commands_and_options_spec()
+        self.write_commands_and_options_spec_prompt(commands_and_options_spec)
 
         methods_signatures_list = self.get_methods_signatures_for_commands(commands_and_options_spec)
 
