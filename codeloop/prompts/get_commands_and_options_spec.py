@@ -1,11 +1,16 @@
 from typing import List
 
 
+def formatted_requirements_list(requirements):
+    return "\\n".join([f"- {r}" for r in requirements])
+
+
 def generate_commands_and_options_spec_prompt(requirements: List[str]):
     prompt = f"""Generate the CLI commands for a CLI tool that will fulfill the following requirements:
-{requirements}
 
-Return the final output as a JSON list inside a code block using the following format:
+{formatted_requirements_list(requirements)}
+
+Return the output as a JSON list inside a code block using the following schema:
 
 ```json 
 [
@@ -17,8 +22,6 @@ Return the final output as a JSON list inside a code block using the following f
     }}
 ]
 ```
-
-To explain the above structure, it's a list of commands, and for each command, we have a list of options. Each option has a name and a description:
 """
 
     return {
