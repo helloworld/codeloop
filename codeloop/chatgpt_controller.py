@@ -67,26 +67,29 @@ class ChatGPTController:
         )
         return commands_and_options_spec
 
-    def write_commands_and_options_spec_prompt(
+    def write_commands_and_options_to_file(
         self,
         commands_and_options: str,
     ):
-        cli_py_contents = self._read_file_from_project("cli.py")
-        messages = [
-            write_commands_and_options_spec_prompt(
-                self.requirements, commands_and_options, cli_py_contents
+        for command_and_options in commands_and_options:
+            command_name = command_and_options["command_name"]
+            file_name = f"command_{command_name}.py"
+
+            messages = [
+                write_commands_and_options_spec_prompt(
+                    self.requirements, file_name, command_and_options
+                )
+            ]
+
+            rewritten_contents = self._request_completion(
+                messages,
+                extract_code_blocks=True,
+                include_lang=True,
+                print_prompt=True,
             )
-        ]
 
-        rewritten_cli_py_contents = self._request_completion(
-            messages,
-            extract_code_blocks=True,
-            include_lang=True,
-            print_prompt=True,
-        )
-
-        if rewritten_cli_py_contents:
-            self._write_file_to_project("cli.py", rewritten_cli_py_contents)
+            if rewritten_contents:
+                self._write_file_to_project(file_name, rewritten_contents)
 
     def get_methods_signatures_for_commands(self, commands_list):
         messages = get_methods_signatures_for_commands_prompt(commands_list)
@@ -129,13 +132,8 @@ class ChatGPTController:
 
     # Main code
     def run_codeloop(self):
-        print("--Starting codeloop")
-
-        print("get_commands_and_options_spec")
         commands_and_options_spec = self.get_commands_and_options_spec()
-
-        print("write_commands_and_options_spec_prompt")
-        self.write_commands_and_options_spec_prompt(commands_and_options_spec)
+        self.write_commands_and_options_to_file(commands_and_options_spec)
 
         print("get_methods_signatures_for_commands")
         methods_signatures_list = self.get_methods_signatures_for_commands(
@@ -155,7 +153,6 @@ class ChatGPTController:
             all_method_tests = []
             print("--Iterate through all tests")
             for test_sig in test_signatures:
-
                 print("write_method_test_implementation")
                 method_test_implementation = self.write_method_test_implementation(
                     test_sig

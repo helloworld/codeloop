@@ -27,7 +27,13 @@ command: codeloop generate
 // Internal
 
 - For each command:
-  - Generate the list of helper methods (signature only) it needs to implement the command
+
+  - Create a new file that has the command implementation
+  - Create a tests folder for that command
+  - Generate N=10 tests for that command
+    - Write each one to it's own file
+
+  <!-- - Generate the list of helper methods (signature only) it needs to implement the command
     - We have unique req where each function can only be like 20 lines long
   - Generate the command implementation using the methods
   - For each method:
@@ -41,6 +47,6 @@ command: codeloop generate
         - Input:
           - existing code, test output
         - Output:
-          - Returns new code
+          - Returns new code -->
 
 > Done!

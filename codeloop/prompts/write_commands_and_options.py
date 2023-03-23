@@ -1,23 +1,43 @@
 from typing import List
 
 
+def formatted_requirements_list(requirements):
+    return "\\n".join([f"- {r}" for r in requirements])
+
+
 def write_commands_and_options_spec_prompt(
-    requirements: List[str], commands_and_options: str, file_to_rewrite_contents: str
+    requirements: List[str],
+    file_name: str,
+    command_and_options: str,
 ):
     prompt = f"""We are writing a CLI that will fulfill the following requirements:
-{requirements}
 
-Here are the commands we want to generate, and the options for each command.
+{formatted_requirements_list(requirements)}
 
-{commands_and_options}
+We are currently implementing this command:
 
-Here is the file we want to rewrite:
+{command_and_options}
+
+We are using click to implement the CLI. The file we are working on is `{file_name}` and it currently looks like this:
 
 ```
-{file_to_rewrite_contents}
+import click
+
+@cli.command(name="command")
+@click.argument(
+    "example"
+)
+@click.option(
+    "-o",
+    "--option",
+    help="An example option",
+)
+def first_command(example, option):
+    "Command description goes here"
+    click.echo("Here is some output")
 ```
 
-Can you rewrite the file to implememt the commands and options? Do not implement the method body of the commands, but just write the method signatures. Write `pass` in the method body.
+Can you rewrite the file to implememt the commands and options? Return the output in a code block.
 """
 
     return {
