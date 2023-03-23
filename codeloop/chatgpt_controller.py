@@ -42,6 +42,10 @@ class ChatGPTController:
         self.requirements = requirements
         self.relative_path = relative_path
 
+    def _get_commands_and_options(self):
+        # TODO(himat): Implement
+        pass
+
     def _request_completion(self, messages, model="gpt-4", print_prompt=False):
         if print_prompt:
             self._print_prompt(messages)
