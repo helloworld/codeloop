@@ -26,16 +26,6 @@ def create_prompt(prompt):
     return cleaned_prompt
 
 
-def _print_prompt(messages):
-    console.print(
-        Panel.fit(
-            Pretty(messages),
-            title="Prompt",
-            border_style="blue",
-        ),
-    )
-
-
 class ChatGPTController:
     def __init__(self, package_name, requirements, relative_path):
         self.package_name = package_name
@@ -45,6 +35,15 @@ class ChatGPTController:
     def _get_commands_and_options(self):
         # TODO(himat): Implement
         pass
+
+    def _print_prompt(messages):
+        console.print(
+            Panel.fit(
+                Pretty(messages),
+                title="Prompt",
+                border_style="blue",
+            ),
+        )
 
     def _request_completion(self, messages, model="gpt-4", print_prompt=False):
         if print_prompt:
