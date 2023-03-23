@@ -1,3 +1,4 @@
+from typing import List
 import openai
 from rich.panel import Panel
 from rich.pretty import Pretty
@@ -5,6 +6,13 @@ from codeloop.console import console
 from rich.panel import Panel
 import re
 import json
+
+from codeloop.prompts.get_commands_and_options_spec import (
+    generate_commands_and_options_spec_prompt,
+)
+from codeloop.prompts.write_commands_and_options import (
+    write_commands_and_options_spec_prompt,
+)
 
 
 DEBUG = True
@@ -22,24 +30,16 @@ class ChatGPTController:
         self.system_messages = [
             {
                 "role": "system",
-                "content": "You are the distinguished principal staff tech lead engineer manager L10 at Google.",
+                "content": "You are an expert Python programmer who has tasteful design for Python architecture and package structure. You primarily respond in code blocks and JSON. ",
             },
         ]
 
     def get_commands_and_options_spec(self):
-        messages = [
-            {
-                "content": f"""Generate the CLI commands for a CLI tool that will fulfill the following requirements:
-    {self.requirements}
-
-    Return output as a JSON list inside a code block.
-    e.g. [{{"command_name": "...",  [{{"option_name": "...", "option_description": "...}}]}}]
-    """,
-                "role": "user",
-            }
+        messages = self.system_messages + [
+            generate_commands_and_options_spec_prompt(self.requirements),
         ]
         cli_spec_list = self._request_completion(
-            self.system_messages + messages,
+            messages,
             extract_code_blocks=True,
             extract_jsons=True,
             include_lang=True,
@@ -48,6 +48,35 @@ class ChatGPTController:
 
         print("CLI command spec: ", cli_spec_list)
         return cli_spec_list
+
+    def write_commands_and_options_spec_prompt(
+        self,
+        commands_and_options: str,
+        file_to_rewrite: str,
+    ):
+        # Get the contents of file to rewrite at the {relative_path}/{package_name}/cli.py
+
+        with open(
+            f"{self.relative_path}/{self.package_name}/cli.py", "r"
+        ) as file_to_rewrite:
+            file_to_rewrite_contents = file_to_rewrite.read()
+
+            messages = self.system_messages + [
+                write_commands_and_options_spec_prompt(
+                    self.requirements, commands_and_options, file_to_rewrite_contents
+                )
+            ]
+
+            rewrite = self._request_completion(
+                messages,
+                extract_code_blocks=True,
+                include_lang=True,
+                print_prompt=True,
+            )
+
+            import pdb
+
+            pdb.set_trace()
 
     def get_methods_signatures(self):
         # TODO
@@ -68,7 +97,7 @@ class ChatGPTController:
     # Main code
     def run_codeloop(self):
         print("starting codeloop")
-        self.get_commands_and_options_spec()
+        command_and_options_spec = self.get_commands_and_options_spec()
 
         methods_signatures_list = self.get_methods_signatures()
 
@@ -125,10 +154,18 @@ class ChatGPTController:
             completion = openai.ChatCompletion.create(
                 model=model,
                 messages=messages,
-                max_tokens=3000,
+                max_tokens=3500,
             )
 
             response_text = completion.choices[0].message.content
+            if DEBUG:
+                console.print(
+                    Panel.fit(
+                        Pretty(response_text),
+                        title="Intermediate Response",
+                        border_style="red",
+                    ),
+                )
 
             if extract_code_blocks:
                 if include_lang:
@@ -153,10 +190,13 @@ class ChatGPTController:
                         try:
                             jsons.append(json.loads(code_block.strip()))
                         except json.JSONDecodeError:
-                            print(f"Could not parse JSON from code block: {code_block}")
-                            raise CodeBlockError(
-                                f"Could not parse JSON from code block: {code_block}"
-                            )
+                            pass
+
+                    if len(jsons) == 0:
+                        print(f"Could not parse JSON from code block: {code_block}")
+                        raise CodeBlockError(
+                            f"Could not parse JSON from code block: {code_block}"
+                        )
 
                     return jsons
 
@@ -176,7 +216,7 @@ class ChatGPTController:
             console.print(
                 Panel.fit(
                     Pretty(response),
-                    title="Response",
+                    title="Final Response",
                     border_style="red",
                 ),
             )

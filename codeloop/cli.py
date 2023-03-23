@@ -51,6 +51,12 @@ def generate(demo):
     panel = Panel(package_info, title="Package Information", border_style="blue")
     console.print(panel)
 
+    try:
+        subprocess.run(["rm", "-rf", relative_path], check=True)
+    except subprocess.CalledProcessError as e:
+        console.print(f"Error deleting directory: {e}", style="bold red")
+        return
+
     cookiecutter_template = "gh:simonw/click-app"
     cookiecutter_cmd = [
         "cookiecutter",
@@ -72,7 +78,6 @@ def generate(demo):
 
     controller = ChatGPTController(package_name, requirements, relative_path)
     controller.run_codeloop()
-
 
 
 if __name__ == "__main__":
