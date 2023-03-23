@@ -89,7 +89,37 @@ def generate(demo):
         console.print(f"Error installing package: {e}", style="bold red")
         return
 
+
+
     controller = ChatGPTController(package_name, requirements, relative_path)
+    base_cli_template ="""
+import os
+import click
+import importlib
+
+__globals = globals()
+
+@click.group()
+@click.version_option()
+def cli():
+    "basecoder"
+
+for file in os.listdir(os.path.dirname(__file__)):
+    mod_name = file[:-3]   # strip .py at the end
+    print("module: ", mod_name)
+    if mod_name.startswith('command_'):
+        # mod_name_stripped = mod_name.split("basecoder.cli")
+        # print("stripped: ", mod_name_stripped)
+        mod = importlib.import_module('basecoder' + '.' + mod_name)
+        __globals[mod_name] = mod
+        functions_list = dir(mod)
+        commands_functions_list = [f for f in functions_list if f.startswith('command_')]
+
+        for cmd_name in commands_functions_list:
+            func_mod = getattr(mod, cmd_name)
+            cli.add_command(func_mod)
+    """
+    controller._write_file_to_project("cli.py", base_cli_template)
     controller.run_codeloop()
 
 

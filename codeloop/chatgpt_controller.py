@@ -51,7 +51,9 @@ class ChatGPTController:
             return f.read()
 
     def _write_file_to_project(self, file_name, file_contents):
-        with open(f"{self.relative_path}/{self.package_name}/{file_name}", "w") as f:
+        full_file_name = f"{self.relative_path}/{self.package_name}/{file_name}"
+        print("writing to ", full_file_name)
+        with open(full_file_name, "w") as f:
             f.write(file_contents)
 
     def get_commands_and_options_spec(self):
@@ -104,7 +106,7 @@ class ChatGPTController:
 
     def write_method_body_implementation(self, method_signature_payload):
         method_body = self._request_completion(
-            write_method_body_implementation_prompt(method_signature_payload),
+            messages=write_method_body_implementation_prompt(method_signature_payload),
             extract_code_blocks=True,
             include_lang=True,
             print_prompt=True,
