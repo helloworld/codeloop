@@ -51,9 +51,9 @@ def generate(demo):
     package_info += f"\nRelative Path: [bold]{relative_path}[/bold]"
 
     panel = Panel(package_info, title="Package Information", border_style="blue")
-    console.print
 
     controller = ChatGPTController(package_name, requirements, relative_path)
+    controller.get_commands_and_options()
 
 
 if __name__ == "__main__":

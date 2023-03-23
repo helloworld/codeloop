@@ -13,28 +13,27 @@ DEBUG = True
 class CodeBlockError(Exception):
     pass
 
-
-def create_system_prompt(prompt):
-    cleaned_prompt = "\n<|im_start|>system\n" + prompt + "<|im_end|>"
-    return cleaned_prompt
-
-
-def create_prompt(prompt):
-    cleaned_prompt = (
-        "\n<|im_start|>user\n" + prompt + "<|im_end|>\n<|im_start|>assistant"
-    )
-    return cleaned_prompt
-
-
 class ChatGPTController:
     def __init__(self, package_name, requirements, relative_path):
         self.package_name = package_name
         self.requirements = requirements
         self.relative_path = relative_path
+        self.system_messages = [
+                {"role": "system", "content": "You are the distinguished principal staff tech lead engineer manager L10 at Google."},
+                ]
 
-    def _get_commands_and_options(self):
-        # TODO(himat): Implement
-        pass
+    def get_commands_and_options(self):
+        messages = [{"content": 
+    f"""Generate the CLI commands for a CLI tool that:
+    {self.requirements}
+
+    Return output as a JSON list. 
+    e.g. [{{"command_name": "...",  [{{"option_name": "...", "option_description": "...}}]}}]
+    """, 
+    "role": "user"}]
+        cli_spec_list_raw_output = self._request_completion(self.system_messages + messages, extract_code_blocks=True, extract_jsons=True, include_lang=True)
+
+        print("output: ", cli_spec_list_raw_output)
 
     def _print_prompt(messages):
         console.print(
@@ -45,7 +44,8 @@ class ChatGPTController:
             ),
         )
 
-    def _request_completion(self, messages, model="gpt-4", print_prompt=False):
+
+    def _request_completion(self, messages, extract_code_blocks=False, extract_jsons=False, include_lang=False, model="gpt-3.5-turbo", print_prompt=False):
         if print_prompt:
             self._print_prompt(messages)
 
