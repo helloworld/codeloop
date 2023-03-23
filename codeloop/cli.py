@@ -1,3 +1,4 @@
+import subprocess
 import click
 from rich.prompt import Prompt
 from rich.panel import Panel
@@ -25,7 +26,6 @@ def generate(demo):
             "decode a string using base64",
             "for both encode and decode, specify a different base as an option",
         ]
-        relative_path = "./basecoder"
     else:
         package_name = Prompt.ask("What do you want the name of the package to be?")
         console.print(f"> {package_name}")
@@ -40,11 +40,9 @@ def generate(demo):
             requirements.append(requirement)
             console.print(f"> {requirement}")
 
-        relative_path = Prompt.ask("What is the relative path to write the project to?")
-        console.print(f"> {relative_path}")
-
         console.print("\nPackage generated successfully!", style="bold green")
 
+    relative_path = f"./{package_name}"
     package_info = f"Package Name: [bold]{package_name}[/bold]\n\nRequirements:\n"
     for requirement in requirements:
         package_info += f"- {requirement}\n"
@@ -52,6 +50,25 @@ def generate(demo):
 
     panel = Panel(package_info, title="Package Information", border_style="blue")
     console.print(panel)
+
+    cookiecutter_template = "gh:simonw/click-app"
+    cookiecutter_cmd = [
+        "cookiecutter",
+        cookiecutter_template,
+        f"--no-input",
+        f"app_name={package_name}",
+        f"description={package_name}",
+        f"hyphenated={package_name}",
+        f"underscored={package_name}",
+        f"github_username={package_name}",
+        f"author_name={package_name}",
+    ]
+
+    try:
+        subprocess.run(cookiecutter_cmd, check=True)
+    except subprocess.CalledProcessError as e:
+        console.print(f"Error executing cookiecutter: {e}", style="bold red")
+        return
 
     controller = ChatGPTController(package_name, requirements, relative_path)
     controller.run_codeloop()
