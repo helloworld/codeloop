@@ -16,9 +16,15 @@ from codeloop.prompts.write_commands_and_options import (
 from codeloop.prompts.get_methods_signatures import (
     get_methods_signatures_for_commands_prompt,
 )
-from codeloop.prompts.write_method_test_signatures import write_method_test_signatures_prompt
-from codeloop.prompts.write_method_body_implementation import write_method_body_implementation_prompt
-from codeloop.prompts.write_method_test_implementation import write_method_test_implementation_prompt
+from codeloop.prompts.write_method_test_signatures import (
+    write_method_test_signatures_prompt,
+)
+from codeloop.prompts.write_method_body_implementation import (
+    write_method_body_implementation_prompt,
+)
+from codeloop.prompts.write_method_test_implementation import (
+    write_method_test_implementation_prompt,
+)
 
 
 DEBUG = True
@@ -84,23 +90,40 @@ class ChatGPTController:
 
     def get_methods_signatures_for_commands(self, commands_list):
         messages = get_methods_signatures_for_commands_prompt(commands_list)
-        methods_signatures_list = self._request_completion(self.system_messages + messages, extract_code_blocks=True, extract_jsons=True, include_lang=True, print_prompt=True)
+        methods_signatures_list = self._request_completion(
+            messages,
+            extract_code_blocks=True,
+            extract_jsons=True,
+            include_lang=True,
+            print_prompt=True,
+        )
         return methods_signatures_list
 
     def write_method_body_implementation(self, method_signature_payload):
-
-        method_body = self._request_completion(self.system_messages + write_method_body_implementation_prompt(method_signature_payload), extract_code_blocks=True, include_lang=True, print_prompt=True)
+        method_body = self._request_completion(
+            write_method_body_implementation_prompt(method_signature_payload),
+            extract_code_blocks=True,
+            include_lang=True,
+            print_prompt=True,
+        )
         return method_body
 
     def write_method_test_signatures(self, method_implementation):
-        test_signatures_list = self._request_completion(self.system_messages + write_method_test_signatures_prompt(method_implementation), extract_code_blocks=True, include_lang=True, print_prompt=True)
+        test_signatures_list = self._request_completion(
+            write_method_test_signatures_prompt(method_implementation),
+            extract_code_blocks=True,
+            include_lang=True,
+            print_prompt=True,
+        )
         return test_signatures_list
 
-
-
     def write_method_test_implementation(self, method_test_signature):
-
-        test_implementation_code = self._request_completion(self.system_messages + write_method_test_implementation_prompt(method_test_signature), extract_code_blocks=True, include_lang=True, print_prompt=True)
+        test_implementation_code = self._request_completion(
+            write_method_test_implementation_prompt(method_test_signature),
+            extract_code_blocks=True,
+            include_lang=True,
+            print_prompt=True,
+        )
 
         return test_implementation_code
 
@@ -110,7 +133,9 @@ class ChatGPTController:
         commands_and_options_spec = self.get_commands_and_options_spec()
         self.write_commands_and_options_spec_prompt(commands_and_options_spec)
 
-        methods_signatures_list = self.get_methods_signatures_for_commands(commands_and_options_spec)
+        methods_signatures_list = self.get_methods_signatures_for_commands(
+            commands_and_options_spec
+        )
 
         print("Iterate through all methods")
         for method_signature in methods_signatures_list:
@@ -192,6 +217,7 @@ class ChatGPTController:
                     code_blocks = re.findall(
                         r"```\n?(.*)\n?```", response_text, re.DOTALL
                     )
+
                 if len(code_blocks) == 0:
                     print(f"No code blocks found in response: {response_text}")
                     raise CodeBlockError(
@@ -207,9 +233,9 @@ class ChatGPTController:
                             pass
 
                     if len(jsons) == 0:
-                        print(f"Could not parse JSON from code block: {code_block}")
+                        print(f"Could not parse any JSON response: {response_text}")
                         raise CodeBlockError(
-                            f"Could not parse JSON from code block: {code_block}"
+                            f"Could not parse any JSON from response: {response_text}"
                         )
 
                     return jsons
