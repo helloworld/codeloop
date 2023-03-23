@@ -10,20 +10,16 @@ def write_commands_and_options_spec_prompt(
     file_name: str,
     command_and_options: str,
 ):
-    prompt = f"""We are writing a CLI that will fulfill the following requirements:
-
-{formatted_requirements_list(requirements)}
-
-We are currently implementing this command:
+    prompt = f"""We are writing a CLI and currently implementing the following command: 
 
 {command_and_options}
 
-We are using click to implement the CLI. The file we are working on is `{file_name}` and it currently looks like this:
+We are using click to implement the CLI. The file we are working on is `{file_name}` the output should look like this.
 
 ```
 import click
 
-@cli.command(name="command")
+@click.command(name="{command_and_options["command_name"]}")
 @click.argument(
     "example"
 )
@@ -32,12 +28,16 @@ import click
     "--option",
     help="An example option",
 )
-def first_command(example, option):
+def command_{command_and_options['command_name']}(example, option):
     "Command description goes here"
     click.echo("Here is some output")
 ```
 
-Can you rewrite the file to implememt the commands and options? Return the output in a code block.
+Can you rewrite the file to implememt the commands and options? Return the output in a code block. Do not implement the command group.
+
+Make sure the method is named `command_{command_and_options['command_name']}` and that the command name is `{command_and_options['command_name']}`.
+
+Output:
 """
 
     return {

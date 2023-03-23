@@ -22,7 +22,7 @@ def generate(demo):
         console.print("Generating demo package...", style="bold green")
         package_name = "basecoder"
         requirements = [
-            "encode a string using base6",
+            "encode a string using base64",
             "decode a string using base64",
             "for both encode and decode, specify a different base as an option",
         ]

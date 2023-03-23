@@ -1,3 +1,4 @@
+import subprocess
 from typing import List
 import openai
 from rich.panel import Panel
@@ -6,6 +7,7 @@ from codeloop.console import console
 from rich.panel import Panel
 import re
 import json
+from codeloop.prompts.debug_tests import debug_tests_prompt
 
 from codeloop.prompts.get_commands_and_options_spec import (
     generate_commands_and_options_spec_prompt,
@@ -13,18 +15,7 @@ from codeloop.prompts.get_commands_and_options_spec import (
 from codeloop.prompts.write_commands_and_options import (
     write_commands_and_options_spec_prompt,
 )
-from codeloop.prompts.get_methods_signatures import (
-    get_methods_signatures_for_commands_prompt,
-)
-from codeloop.prompts.write_method_test_signatures import (
-    write_method_test_signatures_prompt,
-)
-from codeloop.prompts.write_method_body_implementation import (
-    write_method_body_implementation_prompt,
-)
-from codeloop.prompts.write_method_test_implementation import (
-    write_method_test_implementation_prompt,
-)
+from codeloop.prompts.write_tests import write_tests_prompt
 
 
 DEBUG = True
@@ -54,6 +45,10 @@ class ChatGPTController:
         full_file_name = f"{self.relative_path}/{self.package_name}/{file_name}"
         print("writing to ", full_file_name)
         with open(full_file_name, "w") as f:
+            f.write(file_contents)
+
+    def _write_test_to_project(self, file_name, file_contents):
+        with open(f"{self.relative_path}/tests/{file_name}", "w") as f:
             f.write(file_contents)
 
     def get_commands_and_options_spec(self):
@@ -87,13 +82,13 @@ class ChatGPTController:
         self,
         commands_and_options: str,
     ):
-        for command_and_options in commands_and_options:
-            command_name = command_and_options["command_name"]
+        for command_and_option in commands_and_options:
+            command_name = command_and_option["command_name"]
             file_name = f"command_{command_name}.py"
 
             messages = [
                 write_commands_and_options_spec_prompt(
-                    self.requirements, file_name, command_and_options
+                    self.requirements, file_name, command_and_option
                 )
             ]
 
@@ -107,44 +102,72 @@ class ChatGPTController:
             if rewritten_contents:
                 self._write_file_to_project(file_name, rewritten_contents)
 
-    def get_methods_signatures_for_commands(self, commands_list):
-        messages = get_methods_signatures_for_commands_prompt(commands_list)
-        methods_signatures_list = self._request_completion(
-            messages,
-            extract_code_blocks=True,
-            extract_jsons=True,
-            include_lang=True,
-            print_prompt=True,
-        )
-        return methods_signatures_list
+    def write_tests(self, commands_and_options: str):
+        for command_and_option in commands_and_options:
+            command_name = command_and_option["command_name"]
+            command_file_name = f"command_{command_name}.py"
+            test_file_name = f"test_command_{command_name}.py"
+            command_implementation = self._read_file_from_project(command_file_name)
 
-    def write_method_body_implementation(self, method_signature_payload):
-        method_body = self._request_completion(
-            messages=write_method_body_implementation_prompt(method_signature_payload),
-            extract_code_blocks=True,
-            include_lang=True,
-            print_prompt=True,
-        )
-        return method_body
+            messages = [write_tests_prompt(self.requirements, command_implementation)]
 
-    def write_method_test_signatures(self, method_implementation):
-        test_signatures_list = self._request_completion(
-            write_method_test_signatures_prompt(method_implementation),
-            extract_code_blocks=True,
-            include_lang=True,
-            print_prompt=True,
-        )
-        return test_signatures_list
+            contents = self._request_completion(
+                messages,
+                extract_code_blocks=True,
+                include_lang=True,
+                print_prompt=True,
+            )
 
-    def write_method_test_implementation(self, method_test_signature):
-        test_implementation_code = self._request_completion(
-            write_method_test_implementation_prompt(method_test_signature),
-            extract_code_blocks=True,
-            include_lang=True,
-            print_prompt=True,
-        )
+            if contents:
+                self._write_test_to_project(test_file_name, contents)
 
-        return test_implementation_code
+    def debug_tests(self, commands_and_options: str):
+        for command_and_option in commands_and_options:
+            command_name = command_and_option["command_name"]
+            command_file_name = f"command_{command_name}.py"
+            test_file_name = f"test_command_{command_name}.py"
+            command_implementation = self._read_file_from_project(command_file_name)
+
+            tests_failed = True
+            attempts = 0
+            max_attempts = 5
+            while tests_failed and attempts < max_attempts:
+                attempts += 1
+                try:
+                    pytest_output = subprocess.check_output(
+                        ["pytest", f"{self.relative_path}/tests/{test_file_name}"],
+                        stderr=subprocess.STDOUT,
+                    )
+
+                    if pytest_output.decode("utf-8").find("FAILED") != -1:
+                        tests_failed = True
+                    else:
+                        tests_failed = False
+
+                except subprocess.CalledProcessError as e:
+                    pytest_output = e.output
+
+                if tests_failed:
+                    console.print(
+                        Panel.fit(
+                            Pretty(pytest_output.decode("utf-8")),
+                            title="Pytest Output",
+                            border_style="red",
+                        ),
+                    )
+                    messages = [
+                        debug_tests_prompt(command_implementation, pytest_output)
+                    ]
+
+                    contents = self._request_completion(
+                        messages,
+                        extract_code_blocks=True,
+                        include_lang=True,
+                        print_prompt=True,
+                    )
+
+                    if contents:
+                        self._write_test_to_project(command_file_name, contents)
 
     # Main code
     def run_codeloop(self):
@@ -153,38 +176,8 @@ class ChatGPTController:
         commands_and_options_spec = self.get_commands_and_options_spec()
 
         self.write_commands_and_options_to_file(commands_and_options_spec)
-
-        print("get_methods_signatures_for_commands")
-        methods_signatures_list = self.get_methods_signatures_for_commands(
-            commands_and_options_spec
-        )
-
-        print("--Iterate through all methods")
-        for method_signature in methods_signatures_list:
-            print("write_method_body_implementation")
-            method_implementation = self.write_method_body_implementation(
-                method_signature
-            )
-
-            print("write_method_test_signatures")
-            test_signatures = self.write_method_test_signatures(method_implementation)
-
-            all_method_tests = []
-            print("--Iterate through all tests")
-            for test_sig in test_signatures:
-                print("write_method_test_implementation")
-                method_test_implementation = self.write_method_test_implementation(
-                    test_sig
-                )
-                all_method_tests.append(method_test_implementation)
-
-            has_failures = False
-            # Iterate till all tests are fixed and pass
-            for test in all_method_tests:
-                # TODO: figure out main loop
-                continue
-
-        print("Code is fully written")
+        self.write_tests(commands_and_options_spec)
+        self.debug_tests(commands_and_options_spec)
 
     def _print_prompt(self, messages):
         console.print(
