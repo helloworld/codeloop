@@ -60,13 +60,27 @@ class ChatGPTController:
         messages = [
             generate_commands_and_options_spec_prompt(self.requirements),
         ]
-        commands_and_options_spec = self._request_completion(
-            messages,
-            extract_code_blocks=True,
-            extract_jsons=True,
-            include_lang=True,
-            print_prompt=True,
-        )
+        commands_and_options_spec = None
+        latest_error = None
+        for i in range(3):
+            try:
+                commands_and_options_spec = self._request_completion(
+                    messages,
+                    extract_code_blocks=True,
+                    extract_jsons=True,
+                    include_lang=True,
+                    print_prompt=True,
+                )
+            except CodeBlockError as e:
+                # retry 
+                print("Retrying ", i)
+                latest_error = e
+                continue
+            break
+
+        if commands_and_options_spec is None:
+            raise latest_error
+
         return commands_and_options_spec
 
     def write_commands_and_options_to_file(
@@ -134,7 +148,10 @@ class ChatGPTController:
 
     # Main code
     def run_codeloop(self):
+        print("--Starting codeloop")
+
         commands_and_options_spec = self.get_commands_and_options_spec()
+
         self.write_commands_and_options_to_file(commands_and_options_spec)
 
         print("get_methods_signatures_for_commands")
