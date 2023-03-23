@@ -54,7 +54,8 @@ def generate(demo):
     console.print(panel)
 
     controller = ChatGPTController(package_name, requirements, relative_path)
-    controller.get_commands_and_options()
+    controller.run_codeloop()
+
 
 
 if __name__ == "__main__":
