@@ -52,7 +52,6 @@ class ChatGPTController:
     def write_commands_and_options_spec_prompt(
         self,
         commands_and_options: str,
-        file_to_rewrite: str,
     ):
         # Get the contents of file to rewrite at the {relative_path}/{package_name}/cli.py
 
@@ -98,6 +97,7 @@ class ChatGPTController:
     def run_codeloop(self):
         print("starting codeloop")
         command_and_options_spec = self.get_commands_and_options_spec()
+        self.write_commands_and_options_spec_prompt(command_and_options_spec)
 
         methods_signatures_list = self.get_methods_signatures()
 
