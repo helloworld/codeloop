@@ -129,25 +129,34 @@ class ChatGPTController:
 
     # Main code
     def run_codeloop(self):
-        print("starting codeloop")
+        print("--Starting codeloop")
+
+        print("get_commands_and_options_spec")
         commands_and_options_spec = self.get_commands_and_options_spec()
+
+        print("write_commands_and_options_spec_prompt")
         self.write_commands_and_options_spec_prompt(commands_and_options_spec)
 
+        print("get_methods_signatures_for_commands")
         methods_signatures_list = self.get_methods_signatures_for_commands(
             commands_and_options_spec
         )
 
-        print("Iterate through all methods")
+        print("--Iterate through all methods")
         for method_signature in methods_signatures_list:
-            print("method_signature: ", method_signature)
+            print("write_method_body_implementation")
             method_implementation = self.write_method_body_implementation(
                 method_signature
             )
+
+            print("write_method_test_signatures")
             test_signatures = self.write_method_test_signatures(method_implementation)
 
             all_method_tests = []
-            print("Iterate through all tests")
+            print("--Iterate through all tests")
             for test_sig in test_signatures:
+
+                print("write_method_test_implementation")
                 method_test_implementation = self.write_method_test_implementation(
                     test_sig
                 )
@@ -209,13 +218,13 @@ class ChatGPTController:
             if extract_code_blocks:
                 if include_lang:
                     code_blocks = re.findall(
-                        r"```(?:[a-zA-Z0-9_\-]+)?\n?(.*)\n?```",
+                        r"```(?:[a-zA-Z0-9_\-]+)?\n?(.*?)\n?```",
                         response_text,
                         re.DOTALL,
                     )
                 else:
                     code_blocks = re.findall(
-                        r"```\n?(.*)\n?```", response_text, re.DOTALL
+                        r"```\n?(.*?)\n?```", response_text, re.DOTALL
                     )
 
                 if len(code_blocks) == 0:
