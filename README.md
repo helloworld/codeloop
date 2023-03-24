@@ -15,6 +15,12 @@ Install this tool using `pip`:
 
 ## Usage
 
+Run `codeloop generate`
+And fill in your requirements
+Or just run `codeloop generate --demo` to use a pre written requirements doc
+
+While it runs, you should see new files get created inside your specified project folder like in `basecoder/`. The code files will get continually updated as needed to pass the tests.
+
 For help, run:
 
     codeloop --help
